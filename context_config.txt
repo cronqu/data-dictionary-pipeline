@@ -1,0 +1,28 @@
+# context_config.txt  — Edit this file ONCE to describe your study.
+# This context is injected into ai_input.txt and passed to the AI tool.
+# Keep it brief (2–5 sentences). Do NOT include patient names, IDs, or real data.
+# ─────────────────────────────────────────────────────────────────────────────
+
+STUDY_NAME: Wound Infection Prediction Study
+
+STUDY_CONTEXT:
+This dataset is from a wound infection prediction machine learning study
+conducted using Vancouver Coastal Health (VCH) community home health data
+(2019–2021). Data come from two source systems: PARIS (Patient Assessment
+and Review Information System), a community care electronic medical record
+used by VCH, and Pixalere, a wound care documentation platform. The study
+aims to predict wound infection indicators and antimicrobial product use
+from patient demographic, clinical, and social determinants of health data.
+
+DATA_SOURCES:
+- PARIS: Community health EMR (tables A01–B20 as described in the PARIS
+  data requirements document). Covers demographics, assessments, referrals,
+  immunizations, clinical care plans, and sociodemographic variables.
+- Pixalere: Wound care platform (ax_structured = wound assessments per visit;
+  wp_structured = wound profile/etiology/goal-of-care table). Covers wound
+  characteristics, product use, and care plans.
+
+TARGET_VARIABLE:
+The 'label' column is a binary outcome (True/False) indicating whether the
+patient received antimicrobial wound products (e.g., acticoat, calcicare)
+as a proxy for nurse-directed wound infection prophylaxis.

@@ -1,0 +1,14 @@
+# Pipeline runtime files — NOT committed (contain extracted or AI-generated content)
+columns.txt
+synthetic_template.csv
+resource_doc.txt
+ai_input.txt
+ai_output.json
+data_dictionary.xlsx
+
+# macOS
+.DS_Store
+
+# Python
+__pycache__/
+*.pyc
