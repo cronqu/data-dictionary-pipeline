@@ -1,28 +1,33 @@
-# context_config.txt  — Edit this file ONCE to describe your study.
-# This context is injected into ai_input.txt and passed to the AI tool.
-# Keep it brief (2–5 sentences). Do NOT include patient names, IDs, or real data.
+# context_config.txt  — Edit this file ONCE to describe your study and dataset.
+# This context is injected into ai_input.txt and passed to the AI tool along
+# with the column list and your reference document.
+#
+# Keep each section brief (2–5 sentences). Do NOT include participant names,
+# record IDs, data values, or any information that could identify individuals.
+#
+# Lines beginning with # are comments and are ignored by the pipeline scripts.
 # ─────────────────────────────────────────────────────────────────────────────
 
-STUDY_NAME: Wound Infection Prediction Study
+STUDY_NAME: [Enter your study or project name here]
 
 STUDY_CONTEXT:
-This dataset is from a wound infection prediction machine learning study
-conducted using Vancouver Coastal Health (VCH) community home health data
-(2019–2021). Data come from two source systems: PARIS (Patient Assessment
-and Review Information System), a community care electronic medical record
-used by VCH, and Pixalere, a wound care documentation platform. The study
-aims to predict wound infection indicators and antimicrobial product use
-from patient demographic, clinical, and social determinants of health data.
+[Describe what this dataset is about in 2–5 sentences. Include:
+ - The purpose or research question of the study
+ - The approximate time period the data covers
+ - The population or setting (e.g., "adult outpatients at a regional health authority")
+ - Any key outcomes or variables of interest
+ Do NOT include institution names, participant IDs, or real data values.]
 
 DATA_SOURCES:
-- PARIS: Community health EMR (tables A01–B20 as described in the PARIS
-  data requirements document). Covers demographics, assessments, referrals,
-  immunizations, clinical care plans, and sociodemographic variables.
-- Pixalere: Wound care platform (ax_structured = wound assessments per visit;
-  wp_structured = wound profile/etiology/goal-of-care table). Covers wound
-  characteristics, product use, and care plans.
+[List the source systems or databases the data came from. For each source,
+ give its common name and a brief description of what it contains.
+ Example format:
+   - [System A name]: [what it contains, e.g., administrative records, clinical assessments]
+   - [System B name]: [what it contains]
+ If data comes from a single source, list just that one.]
 
 TARGET_VARIABLE:
-The 'label' column is a binary outcome (True/False) indicating whether the
-patient received antimicrobial wound products (e.g., acticoat, calcicare)
-as a proxy for nurse-directed wound infection prophylaxis.
+[If applicable, describe the primary outcome or target variable — the column
+ your analysis is trying to predict or explain. Include the column name and
+ what a positive value means. If there is no single target variable, write
+ "Not applicable — exploratory / descriptive analysis."]

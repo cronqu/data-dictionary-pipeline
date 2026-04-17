@@ -1,7 +1,7 @@
 # Data Dictionary Pipeline — Privacy-Safe Workflow
 
-Generate a professional data dictionary for any health dataset **without
-exposing real patient data to any AI tool**.
+Generate a professional data dictionary for any tabular dataset **without
+exposing real data records to any AI tool**.
 
 See **`pipeline_architecture.png`** for a visual overview of all stages.
 
@@ -10,8 +10,8 @@ See **`pipeline_architecture.png`** for a visual overview of all stages.
 ## What this pipeline produces
 
 A formatted Excel workbook (`data_dictionary.xlsx`) describing every column
-in your CSV — data types, source tables, clinical descriptions, and Code↔Desc
-linkages — structured identically to the reference Pixalere data dictionary.
+in your dataset — data types, source tables, descriptions, and Code↔Description
+column linkages — structured as a 7-column data dictionary table.
 
 ---
 
@@ -32,23 +32,23 @@ linkages — structured identically to the reference Pixalere data dictionary.
 ```
 pipeline/
 ├── README.md                      ← You are here
-├── pipeline_architecture.png      ← Visual figure (run generate_figure.py)
+├── pipeline_architecture.png      ← Visual figure (run generate_figure.py to rebuild)
 │
-├── step1_extract_headers.sh       ← STAGE 1 script (bash)
-├── step2_make_template.py         ← STAGE 2 helper (Python)
-├── step2b_add_resource_doc.py     ← STAGE 2b script (Python) — attach reference doc
-├── step3_package_for_ai.py        ← STAGE 3 script (Python)
-├── ai_prompt.md                   ← STAGE 4 prompt (paste into AI tool)
-├── step5_format_output.py         ← STAGE 5 script (Python)
+├── step1_extract_headers.sh       ← STAGE 1  script (bash)
+├── step2_make_template.py         ← STAGE 2  helper (Python)
+├── step2b_add_resource_doc.py     ← STAGE 2b script (Python) — attach reference document
+├── step3_package_for_ai.py        ← STAGE 3  script (Python)
+├── ai_prompt.md                   ← STAGE 4  prompt (paste into AI tool)
+├── step5_format_output.py         ← STAGE 5  script (Python)
 │
-├── context_config.txt             ← Edit ONCE with your study description
+├── context_config.txt             ← Edit once with your study/dataset description
 │
-│   ── Files produced during the pipeline run ──
+│   ── Files produced during the pipeline run (not committed to git) ──
 ├── columns.txt                    ← Output of Stage 1
-├── synthetic_template.csv         ← Output of Step 2 helper; YOU fill in Stage 2
+├── synthetic_template.csv         ← Output of Stage 2 helper; you fill in Stage 2
 ├── resource_doc.txt               ← Output of Stage 2b (optional but recommended)
 ├── ai_input.txt                   ← Output of Stage 3
-├── ai_output.json                 ← YOU paste AI response here (Stage 4 → 5)
+├── ai_output.json                 ← You paste AI response here (Stage 4 → 5)
 └── data_dictionary.xlsx           ← Final output (Stage 5 → review in Stage 6)
 ```
 
@@ -58,9 +58,10 @@ pipeline/
 
 ### Before you begin — one-time setup
 
-1. Open **`context_config.txt`** and update the study name and context
-   paragraph to describe your specific dataset. Keep it to 2–5 sentences.
-   Do NOT include patient names, IDs, or real data values.
+1. Open **`context_config.txt`** and fill in your study name, a brief
+   description of the dataset, and the name(s) of the source system(s)
+   your data comes from. Keep it to 2–5 sentences. Do NOT include any
+   real data values, patient names, or record-level information.
 
 2. Generate the architecture figure (optional but recommended for first-time users):
    ```bash
@@ -72,8 +73,8 @@ pipeline/
 
 ### 🔴 STAGE 1 — Extract column names only (MANUAL)
 
-**Goal:** Pull the header row from your real CSV — and ONLY the header row.
-No patient data is read or stored.
+**Goal:** Pull only the header row from your data file.
+No data records are read or stored anywhere.
 
 ```bash
 cd /path/to/pipeline
@@ -88,90 +89,89 @@ bash step1_extract_headers.sh /path/to/your_data.csv --sep ";"
 **Output:** `columns.txt` — a numbered list of column names.
 
 ✅ Privacy checkpoint: open `columns.txt` and confirm it contains only
-   column names (no dates, IDs, or clinical values).
+   column names — no dates, IDs, or data values.
 
 ---
 
 ### 🔴 STAGE 2 — Create synthetic example values (MANUAL)
 
-**Goal:** Produce one fake-but-realistic example value for each column.
-You supply these using your own domain knowledge — no AI is involved.
+**Goal:** Produce one realistic but entirely fictitious example value for
+each column. You supply these using your own knowledge of the data —
+no AI tool is involved at this stage.
 
-**Step 2a:** Generate the template file:
+**Step 2a:** Generate the template:
 ```bash
 python3 step2_make_template.py
 ```
-This creates `synthetic_template.csv` with your column headers on Row 1
-and empty cells on Row 2.
+Creates `synthetic_template.csv` with column headers on Row 1 and empty
+cells on Row 2.
 
 **Step 2b:** Open `synthetic_template.csv` in Excel, Numbers, or Google
-Sheets and fill in Row 2. Guidelines printed by the script; key rules:
+Sheets and fill in Row 2. Key rules:
 
-| Data type | Good synthetic value | Bad (too real) |
-|-----------|---------------------|----------------|
-| Numeric ID | `9999` | `1433` (real patient ID) |
-| Date YYYY-MM | `1955-03` | `1929-01` (real birth year) |
-| Date YYYY-MM-DD | `2020-06-15` | actual assessment date |
-| Postal code FSA | `V0A` | `V6S` (real area) |
-| Gender code | `F` | ✅ OK (just a category) |
-| Clinical text | `To Heal the Wound` | ✅ OK (generic label) |
-| Binary Y/N | `N` | ✅ OK |
+| Data type | Good synthetic value | Avoid |
+|-----------|---------------------|-------|
+| Numeric ID | `9999` | any real record ID |
+| Date (YYYY-MM) | `1985-06` | real birth or event date |
+| Date (YYYY-MM-DD) | `2021-03-15` | real clinical date |
+| Postal / zip code | `A0A` | real geographic code |
+| Categorical code | any valid code value | — |
+| Free text | a generic label | real names or notes |
+| Binary Y/N | `N` | — |
+| Missing / null | leave blank or `NaN` | — |
 
 **Step 2c:** Save `synthetic_template.csv` as CSV (not xlsx).
 
 ---
 
-### 🔵 STAGE 2b — Attach a resource document (AUTOMATED + optional but recommended)
+### 🔵 STAGE 2b — Attach a reference document (AUTOMATED, optional but recommended)
 
-**Goal:** Give the AI tool a reference document — such as a data dictionary, codebook,
-clinical annotation guide, or any descriptive document — to use when writing variable
-descriptions. This is the key step that was done manually in the original pipeline
-(pulling definitions from the PARIS categories Word document and Pixalere xlsx).
+**Goal:** Give the AI tool a reference document — such as a data dictionary,
+codebook, variable label guide, or annotation document — so it can write
+accurate, domain-specific descriptions for each variable. This is the key
+step that replaces the need to manually write descriptions from scratch.
 
-**This step is optional but strongly recommended** for more accurate, domain-specific
-descriptions in the final data dictionary.
-
-**Supported document formats** (any of the following):
-- Word document (`.docx`) — including embedded comments
-- Excel workbook (`.xlsx`) — all sheets are extracted
-- PDF (`.pdf`) — text is extracted page by page
+**Supported formats — any of the following:**
+- Word document (`.docx`) — including embedded review comments
+- Excel workbook (`.xlsx`) — all sheets extracted
+- PDF (`.pdf`) — text extracted page by page
 - CSV (`.csv`) — all rows extracted as plain text
 - Plain text or Markdown (`.txt`, `.md`)
 
-> **Not restricted to any specific format.** If your reference document is in
-> another format (e.g., `.odt`, `.rtf`, `.pptx`), use your word processor's
-> "Save As" to convert it to `.docx` or `.txt` first.
+> The reference document is not restricted to any specific format.
+> If your file is in another format (e.g., `.odt`, `.rtf`, `.pptx`),
+> use your application's "Save As" to convert it to `.docx` or `.txt` first.
 
-**Examples of suitable resource documents:**
-- A data dictionary from your data provider (e.g., a VCH data guide)
-- A clinical codebook describing variable labels and value sets
-- An annotation guide with comment text (e.g., the PARIS categories document)
-- A RAI-HC assessment manual
-- Any document containing variable descriptions, code definitions, or clinical context
+**What makes a good reference document?**
+- A data dictionary or codebook provided by your data source/provider
+- A variable label guide describing field names, codes, and allowed values
+- An annotation document with reviewer notes on variable meanings
+- Any document that contains field definitions, code descriptions, or
+  domain context that the AI should draw on when writing descriptions
 
 ```bash
-# Word document (also extracts embedded comments):
-python3 step2b_add_resource_doc.py path/to/PARIS_categories.docx
+# Word document (also extracts embedded review comments):
+python3 step2b_add_resource_doc.py path/to/variable_guide.docx
 
-# Excel workbook:
-python3 step2b_add_resource_doc.py path/to/Pix_data_descriptions.xlsx
+# Excel codebook:
+python3 step2b_add_resource_doc.py path/to/codebook.xlsx
 
-# PDF:
-python3 step2b_add_resource_doc.py path/to/RAI_manual.pdf
+# PDF data dictionary:
+python3 step2b_add_resource_doc.py path/to/data_dictionary.pdf
 
-# Plain text:
-python3 step2b_add_resource_doc.py path/to/codebook.txt
+# Plain text label guide:
+python3 step2b_add_resource_doc.py path/to/labels.txt
 
-# CSV:
-python3 step2b_add_resource_doc.py path/to/variable_labels.csv
+# CSV codebook:
+python3 step2b_add_resource_doc.py path/to/codebook.csv
 ```
 
 **Output:** `resource_doc.txt` — open and review it to confirm it contains
-definitions (not patient data) before proceeding.
+definitions (not data records) before proceeding.
 
-> **Privacy note:** The resource document should contain variable definitions,
-> code labels, and clinical descriptions only — **not** patient records.
-> The script never reads your actual data CSV.
+> **Privacy note:** The reference document should contain variable definitions,
+> code labels, and field descriptions only — not data records or participant
+> information. The script never reads your actual data file.
 
 ---
 
@@ -181,19 +181,19 @@ definitions (not patient data) before proceeding.
 python3 step3_package_for_ai.py
 ```
 
-Reads `columns.txt` + `synthetic_template.csv` + `context_config.txt`
-and writes `ai_input.txt` — a structured text block ready to paste into
-your AI tool.
+Reads `columns.txt`, `synthetic_template.csv`, `context_config.txt`, and
+(if present) `resource_doc.txt`, then writes `ai_input.txt` — a single
+structured text block ready to paste into your AI tool.
 
 ---
 
 ### 🔴 STAGE 4 — Run the AI prompt (MANUAL)
 
 **Capability requirements** (check `ai_prompt.md` for full list):
-- Knowledge cutoff 2023+
+- Knowledge cutoff 2023 or later
 - Outputs valid JSON arrays without truncation
-- Healthcare / clinical knowledge (ICD, RAI, nursing terminology)
-- Context window ≥ 8,000 tokens (~105 columns); scale up for larger datasets
+- Context window large enough for the prompt + reference document + column list
+  (recommended minimum: 32,000 tokens)
 
 **Steps:**
 
@@ -206,12 +206,12 @@ your AI tool.
 4. Send the message and wait for the AI's response.
 
 5. The AI should return a **JSON array** (one object per column).
-   If it truncates, ask it to continue: *"Please continue from where you
-   left off and complete the remaining columns in the same JSON format."*
+   If it truncates, ask it to continue:
+   *"Please continue from column N onwards in the same JSON format."*
 
 6. Copy the **complete JSON response** and save it as **`ai_output.json`**
    in the pipeline folder.
-   - Include the ```json fences if present — they are stripped automatically.
+   - Include ```` ```json ```` fences if present — they are stripped automatically.
    - The file must contain a complete, valid JSON array starting with `[`.
 
 ---
@@ -224,18 +224,18 @@ python3 step5_format_output.py
 
 Reads `ai_output.json` and `synthetic_template.csv`, then writes
 `data_dictionary.xlsx` with:
-- 7 columns (Field, Example Value, PARIS Source Table, Data Type,
-  Source System, Code/Desc Pair, Description & Comments)
-- Color-coded rows by source table section
+- 7 columns: Field, Example Value, Source Table, Data Type, Source System,
+  Code/Desc Pair, Description & Comments
+- Color-coded rows by source system
 - Frozen header row, wrapped text, calibrated column widths
-- Summary sheet with source table legend
+- Summary sheet with a source system legend
 
 ---
 
 ### 🔴 STAGE 6 — Review and finalize (MANUAL)
 
 1. Open `data_dictionary.xlsx`.
-2. Read through all AI-generated descriptions — correct any errors.
+2. Read through all AI-generated descriptions — correct any errors or gaps.
 3. Check the **Code/Desc Pair** column for any missed linkages.
 4. Add custom notes or caveats in the **Description & Comments** column.
 5. Save the final file.
@@ -250,46 +250,47 @@ Your data dictionary is complete ✅
 Run `step1_extract_headers.sh` first.
 
 ### `synthetic_template.csv has X columns but columns.txt has Y`
-The template was generated from an older `columns.txt`. Re-run
-`step2_make_template.py` after any changes to `columns.txt`.
+Re-run `step2_make_template.py` after any change to `columns.txt`.
 
 ### JSON parse error in Step 5
-- Make sure `ai_output.json` contains only the JSON (starting with `[`)
-- If the AI stopped mid-array, ask it to continue and append the rest
-- Validate the JSON at https://jsonlint.com (paste without real data)
+- Ensure `ai_output.json` starts with `[` and ends with `]`
+- If the AI stopped mid-array, ask it to continue and merge the two arrays
+- Validate the JSON at https://jsonlint.com (do not paste real data)
 
 ### AI truncated the output
 Ask: *"You stopped before completing all columns. Please continue the
-JSON array from column N onwards, maintaining the same format."*
-Then manually merge the two JSON arrays before saving to `ai_output.json`.
+JSON array from column N, maintaining the same format."*
+Merge the two JSON arrays manually before saving as `ai_output.json`.
 
-### Colors/styling wrong in xlsx
-Ensure openpyxl ≥ 3.0 is installed: `pip3 install --upgrade openpyxl`
+### Colors / styling missing in xlsx
+Ensure openpyxl ≥ 3.0: `pip3 install --upgrade openpyxl`
+
+---
+
+## Adapting for any dataset
+
+1. Update `context_config.txt` with your dataset and study details.
+2. Run Stage 1 on your new CSV.
+3. Supply your own reference document in Stage 2b.
+4. Run the pipeline from Stage 3 onward.
+
+The pipeline is designed to work for **any tabular dataset** regardless of
+domain or source system. The reference document you supply in Stage 2b is
+what makes descriptions accurate and domain-specific — no hard-coded
+knowledge about any particular database or system is required.
 
 ---
 
 ## Privacy summary
 
-| Stage | What the AI sees | Real data exposed? |
-|-------|-----------------|-------------------|
+| Stage | What the AI tool receives | Real data exposed? |
+|-------|--------------------------|-------------------|
 | 1 | Nothing | ❌ No |
 | 2 | Nothing | ❌ No |
-| 3 | Nothing | ❌ No |
-| 4 | Column names + YOUR synthetic values | ❌ No |
+| 2b | Nothing (script runs locally) | ❌ No |
+| 3 | Nothing (script runs locally) | ❌ No |
+| 4 | Column names + your synthetic values + reference document | ❌ No |
 | 5 | AI's own output only | ❌ No |
 | 6 | Nothing | ❌ No |
 
-**Your real CSV never leaves your machine and is never read by any AI tool.**
-
----
-
-## Adapting for a different dataset
-
-1. Update `context_config.txt` with your study details.
-2. Run the pipeline from Stage 1.
-3. Optionally edit `ai_prompt.md` — update the PARIS table reference card
-   or Pixalere field reference if your data source uses different tables.
-
-The pipeline is designed to work for any tabular health dataset, not just
-PARIS/Pixalere data. The AI prompt's reference cards can be replaced with
-documentation relevant to any EMR or data system.
+**Your real data file never leaves your machine and is never read by any AI tool.**

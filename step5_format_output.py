@@ -10,8 +10,9 @@ INPUTS  : ai_output.json          (paste the AI's full response into this file)
 
 OUTPUT  : data_dictionary.xlsx    (open and review in Stage 6)
 
-STYLING : Matches the structure and color-coding of the reference Pixalere
-          data dictionary (Pix data_descriptions.xlsx).
+STYLING : Rows are color-coded by source system. Colors are assigned
+          automatically from a palette based on the distinct source_system
+          values returned by the AI — no hard-coded system names required.
 
 PRIVACY : This script NEVER reads your real CSV. It only reads the AI's output
           and your synthetic template.
@@ -102,30 +103,37 @@ if os.path.exists(TEMPLATE_FILE):
 else:
     print("WARNING: synthetic_template.csv not found. Example values will be blank.")
 
-# ── Color palette by source table ─────────────────────────────────────────────
+# ── Color palette — assigned dynamically from distinct source_system values ────
+# Colors are soft pastels so text remains readable on every row.
+_PALETTE = [
+    "D9E2F3",  # light blue
+    "E2EFDA",  # light green
+    "FFF2CC",  # light yellow
+    "FCE4D6",  # light peach/orange
+    "E2D9F3",  # light lavender
+    "DAEEF3",  # light teal
+    "EAD1DC",  # light rose
+    "D9F0DA",  # mint
+    "F2DCDB",  # light salmon
+    "D6E4F0",  # sky blue
+    "FDE9D9",  # cream peach
+    "E8F5E9",  # pale green
+]
+
+# Collect distinct source_system values in the order they first appear
+_seen_systems: list = []
+for _rec in records:
+    _sys = (_rec.get("source_system") or "—").strip()
+    if _sys not in _seen_systems:
+        _seen_systems.append(_sys)
+
 section_fills = {
-    "A01": PatternFill(start_color="E2EFDA", end_color="E2EFDA", fill_type="solid"),  # green
-    "A02": PatternFill(start_color="F2DCDB", end_color="F2DCDB", fill_type="solid"),  # pink
-    "A03": PatternFill(start_color="FCE4D6", end_color="FCE4D6", fill_type="solid"),  # light orange
-    "A04": PatternFill(start_color="FCE4D6", end_color="FCE4D6", fill_type="solid"),
-    "A05": PatternFill(start_color="FFF2CC", end_color="FFF2CC", fill_type="solid"),  # yellow
-    "A06": PatternFill(start_color="FFF2CC", end_color="FFF2CC", fill_type="solid"),
-    "A08": PatternFill(start_color="FFF2CC", end_color="FFF2CC", fill_type="solid"),
-    "A09": PatternFill(start_color="FFF2CC", end_color="FFF2CC", fill_type="solid"),
-    "B01": PatternFill(start_color="D9E2F3", end_color="D9E2F3", fill_type="solid"),  # light blue
-    "B02": PatternFill(start_color="FCE4D6", end_color="FCE4D6", fill_type="solid"),  # orange
-    "B03": PatternFill(start_color="D6E4F0", end_color="D6E4F0", fill_type="solid"),  # blue
-    "B05": PatternFill(start_color="DAEEF3", end_color="DAEEF3", fill_type="solid"),  # teal
-    "B06": PatternFill(start_color="D6E4F0", end_color="D6E4F0", fill_type="solid"),
-    "B08": PatternFill(start_color="E2D9F3", end_color="E2D9F3", fill_type="solid"),  # purple
-    "B09": PatternFill(start_color="E2D9F3", end_color="E2D9F3", fill_type="solid"),
-    "B10": PatternFill(start_color="E2D9F3", end_color="E2D9F3", fill_type="solid"),
-    "B13": PatternFill(start_color="D9F0DA", end_color="D9F0DA", fill_type="solid"),  # mint
-    "B16": PatternFill(start_color="D9F0DA", end_color="D9F0DA", fill_type="solid"),
-    "B17": PatternFill(start_color="D9F0DA", end_color="D9F0DA", fill_type="solid"),
-    "RAI": PatternFill(start_color="EAD1DC", end_color="EAD1DC", fill_type="solid"),  # rose
-    "Pixalere (ax)": PatternFill(start_color="FDE9D9", end_color="FDE9D9", fill_type="solid"),  # peach
-    "Pixalere (wp)": PatternFill(start_color="FDE9D9", end_color="FDE9D9", fill_type="solid"),
+    sys_name: PatternFill(
+        start_color=_PALETTE[i % len(_PALETTE)],
+        end_color=_PALETTE[i % len(_PALETTE)],
+        fill_type="solid",
+    )
+    for i, sys_name in enumerate(_seen_systems)
 }
 
 # ── Build workbook ────────────────────────────────────────────────────────────
@@ -145,7 +153,7 @@ thin_border  = Border(
 HEADER_LABELS = [
     "Field",
     "Example Value (Synthetic)",
-    "PARIS Source Table",
+    "Source Table",
     "Data Type",
     "Source System",
     "Code/Desc Pair",
@@ -172,12 +180,8 @@ for row_idx, rec in enumerate(records, 2):
 
     values = [field, example_val, source_tbl, data_type, source_sys, pair, description]
 
-    # Determine row fill from source_table
-    row_fill = None
-    for key in [source_tbl, source_tbl.split()[0] if source_tbl else ""]:
-        if key in section_fills:
-            row_fill = section_fills[key]
-            break
+    # Determine row fill from source_system
+    row_fill = section_fills.get((source_sys or "—").strip())
 
     for col_idx, val in enumerate(values, 1):
         cell = ws.cell(row=row_idx, column=col_idx, value=val)
@@ -205,38 +209,29 @@ ws2 = wb.create_sheet("Summary")
 bold = Font(bold=True)
 now_str = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
 
+# Build a dynamic legend: for each source_system, list its distinct source_tables
+_system_tables: dict = {}
+for _rec in records:
+    _sys = (_rec.get("source_system") or "—").strip()
+    _tbl = (_rec.get("source_table") or "—").strip()
+    _system_tables.setdefault(_sys, set()).add(_tbl)
+
 summary_rows = [
-    ("File described:", "exported_data.csv"),
+    ("File described:", "data file (see ai_input.txt)"),
     ("Data dictionary generated:", now_str),
     ("Total columns described:", n),
     ("", ""),
-    ("PRIVACY NOTE:", "Synthetic example values only — no real patient data included."),
+    ("PRIVACY NOTE:", "Synthetic example values only — no real participant data included."),
     ("", ""),
-    ("Source Table Legend:", ""),
-    ("A01", "Demographics (study_id, birth_dt, Deceased, Gender)"),
-    ("A02", "Relationships (Association Code, Association Desc)"),
-    ("A03", "Alerts (Alert Code/Desc, Extended Leave)"),
-    ("A04", "Allergies (Substance Type, Reaction Type)"),
-    ("A05", "Funding Source (Funding Type/Detail, income assistance)"),
-    ("A06", "Marital Status"),
-    ("A08", "Address (Address Type, postal code / FSA)"),
-    ("A09", "Language (Language Code, Interpreter Required)"),
-    ("B01", "Referrals (reason, source role, department, discharge)"),
-    ("B02", "Allocations (staff allocation type, dates)"),
-    ("B03", "Assessments (assessment type, staff, start/completed)"),
-    ("B05", "CCP — Clinical Care Plan (need, goal, intervention, discipline)"),
-    ("B06", "Diagnosis (diagnosis type, recording team)"),
-    ("B08", "Immunization History (antigen, dose, tradename, status)"),
-    ("B09", "Weight & Growth"),
-    ("B10", "Vital Signs (respirations, temperature, BP)"),
-    ("B13", "Risk Screen (environmental, musculoskeletal, violence, occupational)"),
-    ("B16", "Plan (intervention type, provider, dates)"),
-    ("B17", "HSO — Home Support (type, provider, authorized hours)"),
-    ("RAI", "RAI-HC Assessment (IADL, ADL scales, H1/H2 items)"),
-    ("Pixalere (wp)", "Wound Profile table (alpha_id, etiology, goal_of_care)"),
-    ("Pixalere (ax)", "Assessment Structured table (visited_on, status, wound fields)"),
-    ("Derived / —", "Computed variable or target label"),
+    ("Source System Legend:", "Source Tables"),
 ]
+
+for _sys in _seen_systems:
+    _tables = sorted(
+        t for t in _system_tables.get(_sys, set()) if t not in ("—", "")
+    )
+    _table_str = ", ".join(_tables) if _tables else "—"
+    summary_rows.append((_sys, _table_str))
 
 for row_idx, (key, val) in enumerate(summary_rows, 1):
     c1 = ws2.cell(row=row_idx, column=1, value=key)

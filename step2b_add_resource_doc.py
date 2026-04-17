@@ -31,7 +31,7 @@ PRIVACY : This step processes a REFERENCE document (e.g., a data dictionary,
 EXAMPLES of suitable resource documents:
   • A data dictionary (Word, Excel, or PDF) from your data provider
   • A codebook describing variable labels and values
-  • A clinical annotation guide (e.g., PARIS categories document, RAI manual)
+  • A clinical annotation guide with reviewer notes on variable meanings
   • Any document containing variable descriptions, code definitions, or
     clinical context that the AI should reference when writing descriptions
 
@@ -116,7 +116,7 @@ elif ext == ".docx":
         for row in table.rows:
             parts.append("  |  ".join(c.text.strip() for c in row.cells))
 
-    # Comments (if any — useful for annotation guides like the PARIS document)
+    # Comments (if any — embedded reviewer comments are often the most valuable part)
     try:
         import zipfile, xml.etree.ElementTree as ET
         with zipfile.ZipFile(doc_path) as z:
