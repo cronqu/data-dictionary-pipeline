@@ -1,6 +1,6 @@
 # Data Dictionary Pipeline — Privacy-Safe Workflow
 
-Generate a professional data dictionary for any tabular dataset **without
+Generate a data dictionary for any tabular dataset **without
 exposing real data records to any AI tool**.
 
 See **`pipeline_architecture.png`** for a visual overview of all stages.
@@ -126,8 +126,7 @@ Sheets and fill in Row 2. Key rules:
 
 ### 🔵 STAGE 2b — Attach a reference document (AUTOMATED, optional but recommended)
 
-**Goal:** Give the AI tool a reference document — such as a data dictionary,
-codebook, variable label guide, or annotation document — so it can write
+**Goal:** Give the AI tool a reference document — such as a codebook, variable label guide, or annotation document — so it can write
 accurate, domain-specific descriptions for each variable. This is the key
 step that replaces the need to manually write descriptions from scratch.
 
